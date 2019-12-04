@@ -85,10 +85,21 @@ void Main::Maker::MakeFile(){
         int ngen_proton=0;
 	for(unsigned int ind=0; ind<t->true_beam_daughter_PDG->size(); ind++){
            if(abs(t->true_beam_daughter_PDG->at(ind))==2212) {
-	    ngen_proton++;
-            _event_histo_1d->h_mom_truep->Fill(t->true_beam_daughter_startP->at(ind));}
+	     ngen_proton++;
+             _event_histo_1d->h_mom_gentruep->Fill(t->true_beam_daughter_startP->at(ind));
+             // check if this proton is really reconstructed or not
+             // loop over the reco particles and compare the track ID
+
+
+              
+             //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+           }
         }
-        std::cout<<t->reco_daughter_PFP_true_byHits_endProcess->size()<<" "<<t->reco_daughter_allTrack_Chi2_proton->size()<<std::endl;
+
+
+
+        //std::cout<<t->reco_daughter_PFP_true_byHits_endProcess->size()<<" "<<t->reco_daughter_allTrack_Chi2_proton->size()<<std::endl;
+        //----------------------------------------------------------
 	int nsim_proton=0;
 	//loop over all the daughter particles and get the chi2
         for(unsigned int ipfp=0; ipfp<t->reco_daughter_PFP_true_byHits_endProcess->size(); ipfp++){ 
@@ -101,7 +112,7 @@ void Main::Maker::MakeFile(){
            else if(abs(t->reco_daughter_PFP_true_byHits_PDG->at(ipfp))==321) {_event_histo_1d->h_chi2_phypo_kaon->Fill(t->reco_daughter_allTrack_Chi2_proton->at(ipfp)/t->reco_daughter_allTrack_Chi2_ndof->at(ipfp));}
            else{_event_histo_1d->h_chi2_phypo_other->Fill(t->reco_daughter_allTrack_Chi2_proton->at(ipfp)/t->reco_daughter_allTrack_Chi2_ndof->at(ipfp));}
         }//end of loop over all the daughter PDF particles  
-
+        //--------------------------------------------------------------------------------
         int nsim_showerp=0;
 	for(unsigned int ishw=0; ishw<t->reco_daughter_shower_true_byHits_PDG->size(); ishw++){       
            if(abs(t->reco_daughter_shower_true_byHits_PDG->at(ishw))==2212) {
@@ -114,17 +125,42 @@ void Main::Maker::MakeFile(){
            else{_event_histo_1d->h_chi2_phypo_other->Fill(t->reco_daughter_shower_Chi2_proton->at(ishw)/t->reco_daughter_shower_Chi2_ndof->at(ishw));}
         }  
 	//------------------------------------------------
-        if(nsim_proton + nsim_showerp > ngen_proton){std::cout<<"sim number of proton > gen number of proton "<<ngen_proton<<" "<<nsim_proton+nsim_showerp<<std::endl;
-
-
+        if(nsim_proton + nsim_showerp > ngen_proton){
+				std::cout<<"sim number of proton > gen number of proton "<<ngen_proton<<" "<<nsim_proton+nsim_showerp<<std::endl;
         }
+        //-------------------------------------------------
+
+
+
+
         //std::cout<<"Calculate Truncated Mean dQdx"<<std::endl;
 	std::vector<double> trunmeandqdx_test;
 	std::vector<double> poop_par;
         //std::cout<<t->reco_daughter_PFP_true_byHits_PDG->size()<<" "<<t->reco_daughter_allTrack_dQdX->size()<<std::endl;
 	for(unsigned int jj=0; jj<t->reco_daughter_PFP_true_byHits_PDG->size(); jj++){
-            //std::cout<<"CHECK ID "<<t->reco_daughter_PFP_true_byHits_ID->at(jj)<<"  "<<t->reco_daughter_allTrack_ID->at(jj)<<std::endl;
+            if(abs(t->reco_daughter_PFP_true_byHits_PDG->at(jj))==2212){
+	            _event_histo_1d->h_trackscore_proton->Fill(t->reco_daughter_PFP_trackScore->at(jj));       
+                    if(t->reco_daughter_PFP_true_byHits_parID->at(jj)==t->true_beam_ID ){ 
+                        _event_histo_1d->h_mom_recotruep->Fill(t->reco_daughter_PFP_true_byHits_startP->at(jj));
+                    }
+            } else if(abs(t->reco_daughter_PFP_true_byHits_PDG->at(jj))==211){
+        	    _event_histo_1d->h_trackscore_pionpm->Fill(t->reco_daughter_PFP_trackScore->at(jj));  
+            } else if(abs(t->reco_daughter_PFP_true_byHits_PDG->at(jj))==11){
+	            _event_histo_1d->h_trackscore_electron->Fill(t->reco_daughter_PFP_trackScore->at(jj));       
+            } else if(abs(t->reco_daughter_PFP_true_byHits_PDG->at(jj))==22){
+		    _event_histo_1d->h_trackscore_photon->Fill(t->reco_daughter_PFP_trackScore->at(jj));       
+            } else if(abs(t->reco_daughter_PFP_true_byHits_PDG->at(jj))==13){
+        	    _event_histo_1d->h_trackscore_muon->Fill(t->reco_daughter_PFP_trackScore->at(jj));       
+            } else if(abs(t->reco_daughter_PFP_true_byHits_PDG->at(jj))==111){
+	            _event_histo_1d->h_trackscore_pion0->Fill(t->reco_daughter_PFP_trackScore->at(jj));       
+            } else {
+        	    _event_histo_1d->h_trackscore_other->Fill(t->reco_daughter_PFP_trackScore->at(jj));       
+            }
+
+            if(t->reco_daughter_PFP_trackScore->at(jj)<0.2) continue;
+            poop_par.clear();
 	    if(t->reco_daughter_allTrack_Chi2_proton->at(jj)<-998.) continue;
+            //get the dQdx of the all Tracks object and Fill in a vector
 	    for(unsigned int kk=0; kk<t->reco_daughter_allTrack_dQdX->at(jj).size(); kk++){
 		poop_par.push_back(t->reco_daughter_allTrack_dQdX->at(jj).at(kk));
 	    }
@@ -136,21 +172,45 @@ void Main::Maker::MakeFile(){
 	    if(N_par % 2 == 0) {median_par=(poop_par[((N_par/2)-1)]+poop_par[N_par/2])/2; }
             else if(N_par == 1) {median_par=poop_par[N_par];}
             else {median_par = poop_par[(N_par+1)/2];}
+
 	    std::vector<double> TLMean_par; 
+            TLMean_par.clear();
             for(int ii=0; ii<int(poop_par.size()); ii++){
                  if(poop_par[ii]<median_par+2*RMS_par && poop_par[ii]>median_par-2*RMS_par)
                  {TLMean_par.push_back(poop_par[ii]);}
             }
+
             _event_histo_1d->h_tmdqdx->Fill(TMath::Mean(TLMean_par.begin(), TLMean_par.end()));
 	    if(abs(t->reco_daughter_PFP_true_byHits_PDG->at(jj))==2212){
 	    _event_histo_1d->h_tmdqdx_proton->Fill(TMath::Mean(TLMean_par.begin(), TLMean_par.end()));        
+            //_event_histo_1d->h_tmdqdxvsrange_proton->Fill(TMath::Mean(TLMean_par.begin(), TLMean_par.end()), t->reco_daughter_allTrack_len->at(jj));
+
 	    }else if(abs(t->reco_daughter_PFP_true_byHits_PDG->at(jj))==211){
 	    _event_histo_1d->h_tmdqdx_pionpm->Fill(TMath::Mean(TLMean_par.begin(), TLMean_par.end()));        
+            //_event_histo_1d->h_tmdqdxvsrange_pionpm->Fill(TMath::Mean(TLMean_par.begin(), TLMean_par.end()), t->reco_daughter_allTrack_len->at(jj));
+
 	    }
+	}// end of loop over all the PFP_true_
+        //-----------------------------------------------------------------------------------
+        //Fill the distance between PFP daughters and end point of beam particles
+	TVector3 PFP_daughter_start_v3;
+	TVector3 beam_end_v3;
+
+	beam_end_v3.SetXYZ(t->reco_beam_endX, t->reco_beam_endY, t->reco_beam_endZ);
+	for(unsigned int kk=0; kk<t->reco_daughter_allTrack_ID->size(); kk++){
+		PFP_daughter_start_v3.SetXYZ(t->reco_daughter_allTrack_startX->at(kk), t->reco_daughter_allTrack_startY->at(kk), t->reco_daughter_allTrack_startZ->at(kk));	
+
+                _event_histo_1d->h_trktovtx ->Fill( (PFP_daughter_start_v3 - beam_end_v3).Mag()); 
+                //check if the daughter particle is really daughter from beam particle
+                if(t->reco_daughter_PFP_true_byHits_parID->at(kk)==t->true_beam_ID ){ 
+                _event_histo_1d->h_trktovtx_true ->Fill( (PFP_daughter_start_v3 - beam_end_v3).Mag()); 
+                }  
+        }
+        //------------------------------------------------------------
 
 
-	}       
-	//-----------------------------------------------------  
+
+	//-----------------------------------------------------------  
   } //end of loop over all the events
 
 

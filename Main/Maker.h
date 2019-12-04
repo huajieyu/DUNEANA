@@ -46,7 +46,7 @@
 #include <TLatex.h>
 #include <TCanvas.h>
 #include "TMath.h"
-
+#include <TVector3.h>
 #include "PDEventHisto1D.h"
 
 namespace Main {
@@ -84,6 +84,8 @@ namespace Main {
 
     PDEventHisto1D *_event_histo_1d;
 
+    bool isProton = false;
+    
     
   };
 }
