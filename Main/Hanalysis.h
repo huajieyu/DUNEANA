@@ -1,9 +1,9 @@
 /**
- * \file Maker.h
+ * \file Hanalysis.h
  *
  * \ingroup Main
  * 
- * \brief Class def header for a class Maker
+ * \brief Class def header for a class Hanalysis
  *
  * @author jiangl
  */
@@ -11,8 +11,8 @@
 /** \addtogroup Main
 
     @{*/
-#ifndef __MAIN_MAKER_H__
-#define __MAIN_MAKER_H__
+#ifndef __MAIN_HANALYSIS_H__
+#define __MAIN_HANALYSIS_H__
 #include "PDEventPro.h"
 #include <iostream>
 #include <sstream>
@@ -47,24 +47,25 @@
 #include <TCanvas.h>
 #include "TMath.h"
 #include <TVector3.h>
-#include "PDEventHisto1D.h"
+#include "PDEventDataHisto1D.h"
+
 
 namespace Main {
 
   /**
-     \class Maker
-     User defined class Maker ... these comments are used to generate
+     \class Hanalysis
+     User defined class Hanalysis ... these comments are used to generate
      doxygen documentation!
   */
-  class Maker{
+  class Hanalysis{
     
   public:
     
     /// Default constructor
-    Maker(){}
+    Hanalysis(){}
     
     /// Default destructor
-    ~Maker(){}
+    ~Hanalysis(){}
 
     void SetInputFile(std::string);
     void SetInputFile_add(std::string);
@@ -74,15 +75,11 @@ namespace Main {
     void SetFVCut(bool); 
     void MakeFile();
 
- 
   private:
     void DrawProgressBar(double progress, double barWidth);
     bool inFV(double x, double y, double z);
     double thetax(double theta, double phi);
     bool FVcuton = false; 
-
-    double Calc_reco_beam_energy(TVector3 momentum, double mass);
-    TVector3 Calc_reco_beam_momentum(vector<double>*dedx, TVector3 *dir3);
 
     std::string filen = "";
     std::string filen_add = "";
@@ -90,10 +87,11 @@ namespace Main {
     int _initial_entry = 0;
     int maxEntries = -1;
 
-    PDEventHisto1D *_event_histo_1d;
+    PDEventDataHisto1D *_event_histo_1d;
 
     bool isProton = false;
     double Ecalcmiss(double Esum, double PTmiss, int np); 
+
     const double NeutronMass = 0.93956542; 
     const double ProtonMass = 0.938272;
 
@@ -117,21 +115,21 @@ namespace Main {
     double data_xlow = 0., data_xhigh = 10., data_ylow= -5.;
     double data_yhigh= 10., data_zlow=30., data_zhigh=35., data_coslow=.93;
 
-     bool isBeamType(int i);
-     bool manual_beamPos_mc(double beam_startX, double beam_startY,
-                            double beam_startZ, double beam_dirX,
-                            double beam_dirY,   double beam_dirZ, 
-                            double true_dirX,   double true_dirY,
-                            double true_dirZ,   double true_startX,
-                            double true_startY, double true_startZ);
-    
+    bool data_beam_PID(const std::vector<int> *pidCandidates);
+    bool manual_beamPos_data (int event,            double data_startX,
+                              double data_startY,   double data_startZ,
+                              double data_dirX,     double data_dirY,
+                              double data_dirZ,     double data_BI_X,
+                              double data_BI_Y,     double data_BI_dirX,
+                              double data_BI_dirY,  double data_BI_dirZ,
+                              int data_BI_nMomenta, int data_BI_nTracks); 
      bool endAPA3(double reco_beam_endZ); 
-    //
-    //Tag PrimaryPion without elastic Scattering
      bool has_shower_nHits_distance(const std::vector<double> &track_score,
                                     const std::vector<int> &nHits,
                                     const std::vector<double> &distance); 
-   };
+ 
+
+  };
 }
 
 #endif
