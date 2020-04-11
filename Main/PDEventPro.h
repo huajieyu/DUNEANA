@@ -1,8 +1,8 @@
 //////////////////////////////////////////////////////////
 // This class has been automatically generated on
-// Sun Mar 15 11:42:29 2020 by ROOT version 6.18/04
+// Fri Apr 10 21:26:22 2020 by ROOT version 6.18/04
 // from TTree beamana/beam analysis tree
-// found on file: /dune/data/users/calcuttj/pionana_mc_1GeV_3_13_20.root
+// found on file: /pnfs/dune/resilient/users/jiangl/pionana_mcc12/pionana_mc_1GeV_3_31_20.root
 //////////////////////////////////////////////////////////
 
 #ifndef PDEventPro_h
@@ -301,6 +301,8 @@ public :
    Bool_t          beam_has_cosmic_IDE;
    vector<int>     *cosmic_has_beam_IDE;
    Int_t           n_cosmics_with_beam_IDE;
+   vector<double>  *reco_daughter_allTrack_momByRange_proton;
+   vector<double>  *reco_daughter_allTrack_momByRange_muon;
    Double_t        reco_beam_true_byE_endPx;
    Double_t        reco_beam_true_byE_endPy;
    Double_t        reco_beam_true_byE_endPz;
@@ -332,6 +334,9 @@ public :
    vector<double>  *new_true_beam_incidentEnergies;
    Double_t        new_true_beam_interactingEnergy;
    vector<double>  *g4rw_primary_weights;
+   vector<double>  *g4rw_primary_plus_sigma_weight;
+   vector<double>  *g4rw_primary_minus_sigma_weight;
+   vector<string>  *g4rw_primary_var;
    vector<double>  *reco_beam_spacePts_X;
    vector<double>  *reco_beam_spacePts_Y;
    vector<double>  *reco_beam_spacePts_Z;
@@ -620,6 +625,8 @@ public :
    TBranch        *b_beam_has_cosmic_IDE;   //!
    TBranch        *b_cosmic_has_beam_IDE;   //!
    TBranch        *b_n_cosmics_with_beam_IDE;   //!
+   TBranch        *b_reco_daughter_allTrack_momByRange_proton;   //!
+   TBranch        *b_reco_daughter_allTrack_momByRange_muon;   //!
    TBranch        *b_reco_beam_true_byE_endPx;   //!
    TBranch        *b_reco_beam_true_byE_endPy;   //!
    TBranch        *b_reco_beam_true_byE_endPz;   //!
@@ -651,6 +658,9 @@ public :
    TBranch        *b_new_true_beam_incidentEnergies;   //!
    TBranch        *b_new_true_beam_interactingEnergy;   //!
    TBranch        *b_g4rw_primary_weights;   //!
+   TBranch        *b_g4rw_primary_plus_sigma_weight;   //!
+   TBranch        *b_g4rw_primary_minus_sigma_weight;   //!
+   TBranch        *b_g4rw_primary_var;   //!
    TBranch        *b_reco_beam_spacePts_X;   //!
    TBranch        *b_reco_beam_spacePts_Y;   //!
    TBranch        *b_reco_beam_spacePts_Z;   //!
@@ -680,11 +690,11 @@ PDEventPro::PDEventPro(TTree *tree) : fChain(0)
 // if parameter tree is not specified (or zero), connect the file
 // used to generate this class and read the Tree.
    if (tree == 0) {
-      TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject("/dune/data/users/calcuttj/pionana_mc_1GeV_3_13_20.root");
+      TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject("/pnfs/dune/resilient/users/jiangl/pionana_mcc12/pionana_mc_1GeV_3_31_20.root");
       if (!f || !f->IsOpen()) {
-         f = new TFile("/dune/data/users/calcuttj/pionana_mc_1GeV_3_13_20.root");
+         f = new TFile("/pnfs/dune/resilient/users/jiangl/pionana_mcc12/pionana_mc_1GeV_3_31_20.root");
       }
-      TDirectory * dir = (TDirectory*)f->Get("/dune/data/users/calcuttj/pionana_mc_1GeV_3_13_20.root:/pionana");
+      TDirectory * dir = (TDirectory*)f->Get("/pnfs/dune/resilient/users/jiangl/pionana_mcc12/pionana_mc_1GeV_3_31_20.root:/pionana");
       dir->GetObject("beamana",tree);
 
    }
@@ -886,6 +896,8 @@ void PDEventPro::Init(TTree *tree)
    reco_beam_cosmic_candidate_upper_hits = 0;
    reco_beam_cosmic_candidate_ID = 0;
    cosmic_has_beam_IDE = 0;
+   reco_daughter_allTrack_momByRange_proton = 0;
+   reco_daughter_allTrack_momByRange_muon = 0;
    reco_beam_incidentEnergies = 0;
    true_beam_incidentEnergies = 0;
    true_beam_slices = 0;
@@ -894,6 +906,9 @@ void PDEventPro::Init(TTree *tree)
    true_beam_slices_deltaE = 0;
    new_true_beam_incidentEnergies = 0;
    g4rw_primary_weights = 0;
+   g4rw_primary_plus_sigma_weight = 0;
+   g4rw_primary_minus_sigma_weight = 0;
+   g4rw_primary_var = 0;
    reco_beam_spacePts_X = 0;
    reco_beam_spacePts_Y = 0;
    reco_beam_spacePts_Z = 0;
@@ -1186,6 +1201,8 @@ void PDEventPro::Init(TTree *tree)
    fChain->SetBranchAddress("beam_has_cosmic_IDE", &beam_has_cosmic_IDE, &b_beam_has_cosmic_IDE);
    fChain->SetBranchAddress("cosmic_has_beam_IDE", &cosmic_has_beam_IDE, &b_cosmic_has_beam_IDE);
    fChain->SetBranchAddress("n_cosmics_with_beam_IDE", &n_cosmics_with_beam_IDE, &b_n_cosmics_with_beam_IDE);
+   fChain->SetBranchAddress("reco_daughter_allTrack_momByRange_proton", &reco_daughter_allTrack_momByRange_proton, &b_reco_daughter_allTrack_momByRange_proton);
+   fChain->SetBranchAddress("reco_daughter_allTrack_momByRange_muon", &reco_daughter_allTrack_momByRange_muon, &b_reco_daughter_allTrack_momByRange_muon);
    fChain->SetBranchAddress("reco_beam_true_byE_endPx", &reco_beam_true_byE_endPx, &b_reco_beam_true_byE_endPx);
    fChain->SetBranchAddress("reco_beam_true_byE_endPy", &reco_beam_true_byE_endPy, &b_reco_beam_true_byE_endPy);
    fChain->SetBranchAddress("reco_beam_true_byE_endPz", &reco_beam_true_byE_endPz, &b_reco_beam_true_byE_endPz);
@@ -1217,6 +1234,9 @@ void PDEventPro::Init(TTree *tree)
    fChain->SetBranchAddress("new_true_beam_incidentEnergies", &new_true_beam_incidentEnergies, &b_new_true_beam_incidentEnergies);
    fChain->SetBranchAddress("new_true_beam_interactingEnergy", &new_true_beam_interactingEnergy, &b_new_true_beam_interactingEnergy);
    fChain->SetBranchAddress("g4rw_primary_weights", &g4rw_primary_weights, &b_g4rw_primary_weights);
+   fChain->SetBranchAddress("g4rw_primary_plus_sigma_weight", &g4rw_primary_plus_sigma_weight, &b_g4rw_primary_plus_sigma_weight);
+   fChain->SetBranchAddress("g4rw_primary_minus_sigma_weight", &g4rw_primary_minus_sigma_weight, &b_g4rw_primary_minus_sigma_weight);
+   fChain->SetBranchAddress("g4rw_primary_var", &g4rw_primary_var, &b_g4rw_primary_var);
    fChain->SetBranchAddress("reco_beam_spacePts_X", &reco_beam_spacePts_X, &b_reco_beam_spacePts_X);
    fChain->SetBranchAddress("reco_beam_spacePts_Y", &reco_beam_spacePts_Y, &b_reco_beam_spacePts_Y);
    fChain->SetBranchAddress("reco_beam_spacePts_Z", &reco_beam_spacePts_Z, &b_reco_beam_spacePts_Z);

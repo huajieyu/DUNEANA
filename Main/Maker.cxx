@@ -217,6 +217,7 @@ void Main::Maker::MakeFile(){
   int Nchx = 0;
   int Nrea = 0;
   int TestGenSig=0;
+  int Nsellibo=0;
   //for(int i= _initial_entry; i<50; i++){
 
   for(int i= _initial_entry; i<evts; i++){
@@ -224,7 +225,8 @@ void Main::Maker::MakeFile(){
 
 	chain_pdxsec->GetEntry(i);
 	//-----------------------------------------------
-        if(abs(t->true_beam_PDG) != 211) continue; 	
+	//select muon and pion beam events
+        if(abs(t->true_beam_PDG) != 211 && abs(t->true_beam_PDG) !=13) continue; 	
         if(!isBeamType(t->reco_beam_type)) continue;
         if(!manual_beamPos_mc(t->reco_beam_startX, t->reco_beam_startY, t->reco_beam_startZ, 
                               t->reco_beam_trackDirX, t->reco_beam_trackDirY, t->reco_beam_trackDirZ,
@@ -235,16 +237,15 @@ void Main::Maker::MakeFile(){
         if(FVcuton && t->reco_beam_true_byHits_matched == 0) continue;
 
        
-        //std::cout<<"Start to check the generated and reconstructed particles "<<t->true_beam_endProcess_libo<<std::endl;
         
         //Fill true proton momentum
-        unsigned int ngen_proton=0;
-        unsigned int ngen_par=0;
+        unsigned int ngen_proton=0; //number of generated protons
+        unsigned int ngen_par=0;  // number of generated particles
         
         bool allgenpinFV = false;
         //bool nolowmomcand = true;
 	for(unsigned int ind=0; ind<t->true_beam_daughter_PDG->size(); ind++){
-           //if(t->true_beam_daughter_startP->at(ind)<0.1) {nolowmomcand = false;}
+
            if(abs(t->true_beam_daughter_PDG->at(ind))==2212) 
            {_event_histo_1d->h_orimom_proton->Fill(t->true_beam_daughter_startP->at(ind));}
            else if(abs(t->true_beam_daughter_PDG->at(ind))==2112) 
@@ -270,30 +271,43 @@ void Main::Maker::MakeFile(){
         }
 
 
-        std::cout<<t->reco_beam_true_byHits_matched<<std::endl;
-        if(FVcuton && t->reco_beam_true_byHits_matched == 0) continue;
 
-        std::cout<<"Find a matched events with true pions"<<std::endl; 
         bool isSignal = false;
         bool isChxBKG = false;
         bool isReaBKG = false;
+
+        unsigned int nproton02=0; //number of reconstructed  protons
+        unsigned int npion02=0; //number of reconstructed pions
+ 
+        for(unsigned int vcand=0; vcand<t->reco_daughter_allTrack_len->size(); vcand++){
+           if(abs(t->reco_daughter_PFP_true_byHits_PDG->at(vcand)) == 2212) {nproton02++;}
+           if(abs(t->reco_daughter_PFP_true_byHits_PDG->at(vcand)) == 211) {npion02++;}
+
+        }
+
+
+        //selected signal & backgrounds and count the number of signal & background
         if(t->true_daughter_nPi0 == 0 && t->true_daughter_nPiPlus == 0 
            && t->true_daughter_nPiMinus ==0 /*&& t->true_daughter_endProcess == "pi+Inelastic"*/ ) {
 		Noriabs++;
 		isSignal = true;
+                _event_histo_1d->h_true_sig_trkmult->Fill(nproton02);
         }
         else if(t->true_daughter_nPi0 > 0 ) {Norichx++;
                 isChxBKG = true;
+                _event_histo_1d->h_true_chxbac_trkmult->Fill(npion02+nproton02);
         }
         if(t->true_daughter_nPi0 == 0 && (t->true_daughter_nPiPlus > 0 
            || t->true_daughter_nPiMinus >0)  ) {Norirea++;
                 isReaBKG = true;
+                _event_histo_1d->h_true_reabac_trkmult->Fill(npion02+nproton02);
         }
 
         //================================================================
 
 
-        //get the denomator of the energetic protons
+        //get the denomator of the energetic protons for momentum, angles
+        //TestGenSig is the number of events with at least one proton
         if(t->true_daughter_nPi0 == 0 && t->true_daughter_nPiPlus == 0 && t->true_daughter_nPiMinus ==0 )      {
           int temp_genpindex=-999; double temp_genpmom=-999.0;
           for(unsigned int ntrk=0; ntrk<t->true_beam_daughter_startP->size(); ntrk++){
@@ -305,9 +319,7 @@ void Main::Maker::MakeFile(){
           }
           if(temp_genpindex<0) continue;
             _event_histo_1d->h_PiAbs_gen_sig_energeticproton_mom->Fill(t->true_beam_daughter_startP->at(temp_genpindex));
-            //_event_histo_1d->h_PiAbs_gen_sig_energeticproton_costheta->Fill(TMath::Cos(t->true_beam_daughter_Theta->at(temp_genpindex)));
             _event_histo_1d->h_PiAbs_gen_sig_energeticproton_costheta->Fill(t->true_beam_daughter_startPz->at(temp_genpindex)/t->true_beam_daughter_startP->at(temp_genpindex));
-            //_event_histo_1d->h_PiAbs_gen_sig_energeticproton_phi->Fill(t->true_beam_daughter_Phi->at(temp_genpindex));
             _event_histo_1d->h_PiAbs_gen_sig_energeticproton_phi->Fill(TMath::ATan2(t->true_beam_daughter_startPy->at(temp_genpindex),t->true_beam_daughter_startPx->at(temp_genpindex)));
 
            TestGenSig++;
@@ -329,9 +341,11 @@ void Main::Maker::MakeFile(){
         TVector3 truegranddaughterstartv3;
         TVector3 truegranddaughterendv3;
 
-
+        //loop over all the grand daughter particles
+        //save the parent id of the pions into a vector pargdid
         vector<int> pargdid;
         pargdid.clear();
+       
         for(unsigned ingd=0; ingd<t->true_beam_grand_daughter_ID->size(); ingd++){
             //truegranddaughterstartv3.SetXYZ(t->true_beam_grand_daughter_startX->at(ingd), t->true_beam_grand_daughter_startY->at(ingd),t->true_beam_grand_daughter_startZ->at(ingd));
             //truegranddaughterendv3.SetXYZ(t->true_beam_grand_daughter_endX->at(ingd), t->true_beam_grand_daughter_endY->at(ingd),t->true_beam_grand_daughter_endZ->at(ingd));
@@ -340,13 +354,14 @@ void Main::Maker::MakeFile(){
             //}
             //else {_event_histo_1d->h_grand_daughter_beam_dist->Fill((truebeamendv3-truegranddaughterendv3).Mag());}
 
-            //if(abs(t->true_beam_grand_daughter_PDG->at(ingd))==111 || abs(t->true_beam_grand_daughter_PDG->at(ingd))==211) {
-            //     pargdid.push_back(t->true_beam_grand_daughter_parID->at(ingd));
-            //}
+            if(abs(t->true_beam_grand_daughter_PDG->at(ingd))==111 || abs(t->true_beam_grand_daughter_PDG->at(ingd))==211) {
+                 pargdid.push_back(t->true_beam_grand_daughter_parID->at(ingd));
+            }
         } 
         //====================================================================
         //----------------------------------------------------------------------------  
         //check how many nucleons 
+        //loop over all the true beam daughter particles
         for(unsigned indp=0; indp<t->true_beam_daughter_ID->size(); indp++){
 
 
@@ -360,7 +375,7 @@ void Main::Maker::MakeFile(){
 
 
 
-
+             //tempit: loop over all the parent id of the pions of granddaughter
              std::vector<int>::iterator tempit;
 
              tempit = std::find(pargdid.begin(), pargdid.end(), t->true_beam_daughter_ID->at(indp));
@@ -376,7 +391,7 @@ void Main::Maker::MakeFile(){
              } else {continue;}
                           
         }         
-        //----------------------------------------------------------
+        //======================================================================
 	//loop over all the daughter particles and get the chi2
         for(unsigned int ipfp=0; ipfp<t->reco_daughter_allTrack_ID->size(); ipfp++){ 
            if(t->reco_daughter_PFP_trackScore_collection->at(ipfp)<0.3) continue;
@@ -402,13 +417,14 @@ void Main::Maker::MakeFile(){
         //--------------------------------------------------------------------------------
 
 
-        //std::cout<<"Calculate Truncated Mean dQdx"<<std::endl;
+        //std::cout<<"===============Calculate Truncated Mean dQdx"<<std::endl;
 	std::vector<double> trunmeandqdx_test;
 	std::vector<double> poop_par;
 
         //======================================================================
         //loop over all the true beam daughters and fill the histogram for the start momentum
-        //of pi0, pipm and protons
+        //of pi0, pipm and protons before performing any cut, which are the denominator 
+        //of the track reconstruction efficiency
      
         for(unsigned int indt=0; indt<t->true_beam_daughter_PDG->size(); indt++){
 
@@ -427,6 +443,7 @@ void Main::Maker::MakeFile(){
            if(abs(t->true_beam_daughter_PDG->at(indt))!= 2212) continue;
 	   _event_histo_1d->h_mom_gentruep->Fill(t->true_beam_daughter_startP->at(indt));
            _event_histo_1d->h_thetax_gentruep->Fill(TMath::ACos(t->true_beam_daughter_startPx->at(indt)/t->true_beam_daughter_startP->at(indt)));
+
            //check if this proton is reaconstructed, then get the initial reconstruction efficiency
            int foundreco=0;
            auto itSearch = std::find( t->reco_daughter_PFP_true_byHits_ID->begin(), t->reco_daughter_PFP_true_byHits_ID->end(), t->true_beam_daughter_ID->at(indt) );
@@ -461,6 +478,9 @@ void Main::Maker::MakeFile(){
         }
         //======================================================================
         /*
+        * loop over all the reconstructed daughter particles
+        * get the photons and fill the parent ID of the photon into 
+        * vec_parid vector, which will be checked by the PDG 
         */
         //=========================================================================
 
@@ -483,7 +503,7 @@ void Main::Maker::MakeFile(){
         
         /*
         */
-
+        
         vector<int> vec_pionparid;
         vec_pionparid.clear();
         //----------------------------------------------------------------------- 
@@ -492,7 +512,7 @@ void Main::Maker::MakeFile(){
         //loop over all the parID from reco photons 
         if(vec_parid.size()>0){
         for(unsigned int ind_parid=0; ind_parid<vec_parid.size(); ind_parid++){
-          // loop over all the true beam daughter ID
+          // loop over all the true beam daughter ID and check if it is pion 0
           for(unsigned int ind_cd=0; ind_cd<t->true_beam_daughter_ID->size(); ind_cd++){
                if(t->true_beam_daughter_ID->at(ind_cd) == vec_parid.at(ind_parid) && t->true_beam_daughter_PDG->at(ind_cd)==111) {
                         vec_pionparid.push_back(vec_parid.at(ind_parid));
@@ -657,7 +677,7 @@ void Main::Maker::MakeFile(){
                      _event_histo_1d->h_mom_tmdqdxtruepipm->Fill(t->reco_daughter_PFP_true_byHits_startP->at(jj));
                   }
                 }//selected the primary daughters
-                if(t->reco_daughter_allTrack_Chi2_proton->at(jj)/t->reco_daughter_allTrack_Chi2_ndof->at(jj) < 40
+                if(t->reco_daughter_allTrack_Chi2_proton->at(jj)/t->reco_daughter_allTrack_Chi2_ndof->at(jj) < 70
                    && t->reco_daughter_allTrack_Chi2_proton->at(jj)/t->reco_daughter_allTrack_Chi2_ndof->at(jj) > 0 ) 
                 {
                   isPCand = true;
@@ -667,7 +687,7 @@ void Main::Maker::MakeFile(){
                      }//end of if the tracks with chi2>40
                   }//end of selecting the true daughter particles 
                 } //end of apply chi2 cut
-                else if(t->reco_daughter_allTrack_Chi2_proton->at(jj)/t->reco_daughter_allTrack_Chi2_ndof->at(jj) > 40
+                else if(t->reco_daughter_allTrack_Chi2_proton->at(jj)/t->reco_daughter_allTrack_Chi2_ndof->at(jj) > 70
                    && t->reco_daughter_allTrack_Chi2_proton->at(jj)/t->reco_daughter_allTrack_Chi2_ndof->at(jj) > 0 ) 
                 { 
                  isPiCand = true;
@@ -709,7 +729,18 @@ void Main::Maker::MakeFile(){
                 } else{
                     _event_histo_1d->h_recomom_selected_other->Fill(t->reco_daughter_allTrack_momByRange_proton->at(jj));
                 }*/
-  
+                std::cout<<"size of resRange is "<<t->reco_daughter_allTrack_resRange_SCE->at(jj).size()<<std::endl;
+                std::cout<<"size of calibrated_dEdX_SCE is "<<t->reco_daughter_allTrack_calibrated_dEdX_SCE->at(jj).size()<<std::endl;
+
+
+                if(t->reco_daughter_allTrack_calibrated_dEdX_SCE->at(jj).size()>0){ 
+                 for(unsigned int ndr=0; ndr<t->reco_daughter_allTrack_calibrated_dEdX_SCE->at(jj).size(); ndr++){
+                     _event_histo_1d->h_selproton_dedxRR->Fill(t->reco_daughter_allTrack_resRange_SCE->at(jj).at(ndr),t->reco_daughter_allTrack_calibrated_dEdX_SCE->at(jj).at(ndr));
+             
+                 }
+                }
+
+ 
                 if(abs(t->reco_daughter_PFP_true_byHits_PDG->at(jj))==2212){
                     _event_histo_1d->h_recomom_selected_proton->Fill(t->reco_daughter_allTrack_len->at(jj));
                 } else if(abs(t->reco_daughter_PFP_true_byHits_PDG->at(jj))==211){
@@ -784,6 +815,7 @@ void Main::Maker::MakeFile(){
                 double M = ProtonMass*1000;
                 temp_Momentum = TMath::Sqrt((temp_KE*temp_KE) + 2*M*temp_KE); 
                 temp_Momentum = temp_Momentum/1000.0;
+
                 _event_histo_1d->h_selproton_momreso->Fill(t->reco_daughter_PFP_true_byHits_startP->at(jj),temp_Momentum);
 
                 _event_histo_1d->h_selproton_costhetareso->Fill(t->reco_daughter_PFP_true_byHits_startPz->at(jj)/t->reco_daughter_PFP_true_byHits_startP->at(jj), TMath::Cos(t->reco_daughter_allTrack_Theta->at(jj)));
@@ -829,6 +861,10 @@ void Main::Maker::MakeFile(){
         
 
         if(nonprotoncand > 0 || nshwcand > 0) continue;
+        //if(t->reco_daughter_allTrack_len->size()>3) continue;
+        Nsellibo++;
+
+
         //calculate Emissing Pmissing here
 
         double true_Ptmissing = 0; double Emissing_Qsubtracted=0;
@@ -847,8 +883,6 @@ void Main::Maker::MakeFile(){
 
         for(unsigned int ntrk=0; ntrk<t->reco_daughter_allTrack_len->size(); ntrk++){
 
-             _event_histo_1d->h_PiAbs_sel_pmom->Fill(t->reco_daughter_allTrack_len->at(ntrk));
-             //_event_histo_1d->h_PiAbs_sel_pmom->Fill(t->reco_daughter_allTrack_momByRange_proton->at(ntrk));
              _event_histo_1d->h_PiAbs_sel_pcostheta->Fill(TMath::Cos(t->reco_daughter_allTrack_Theta->at(ntrk)));
              _event_histo_1d->h_PiAbs_sel_ptheta->Fill(t->reco_daughter_allTrack_Theta->at(ntrk));
 
@@ -886,6 +920,7 @@ void Main::Maker::MakeFile(){
              total_pPz += temp_Momentum*TMath::Cos(t->reco_daughter_allTrack_Theta->at(ntrk));
 
 
+             _event_histo_1d->h_PiAbs_sel_pmom->Fill(temp_Momentum);
 
             
 
@@ -930,6 +965,7 @@ void Main::Maker::MakeFile(){
                  if(t->reco_daughter_allTrack_ID->size()){
                        _event_histo_1d->h_sig_Ptmissing->Fill(reco_Ptmissing);
                        _event_histo_1d->h_sig_Plongit->Fill(reco_Pz);
+                       _event_histo_1d->h_sig_Ptmissing_vs_pcand->Fill(reco_Ptmissing, t->reco_daughter_allTrack_ID->size());
                  }
                  _event_histo_1d->h_sig_pvsnmult->Fill(t->true_daughter_nProton, t->true_daughter_nNeutron);
 
@@ -940,8 +976,6 @@ void Main::Maker::MakeFile(){
                  temp_plen = -999.0; temp_pmom=-999.0;  temp_pcostheta=-999.0;  temp_pphi=-999.0;
 
                  for(unsigned int tmk=0; tmk<t->reco_daughter_allTrack_ID->size(); tmk++){
-                      //_event_histo_1d->h_PiAbs_sig_pmom->Fill(t->reco_daughter_allTrack_momByRange_proton->at(tmk)); 
-                      _event_histo_1d->h_PiAbs_sig_pmom->Fill(t->reco_daughter_allTrack_len->at(tmk)); 
                       _event_histo_1d->h_PiAbs_sig_pcostheta->Fill(TMath::Cos(t->reco_daughter_allTrack_Theta->at(tmk)));
                       _event_histo_1d->h_PiAbs_sig_pphi->Fill(t->reco_daughter_allTrack_Phi->at(tmk));
                       _event_histo_1d->h_PiAbs_sig_ptheta->Fill(t->reco_daughter_allTrack_Theta->at(tmk));
@@ -964,6 +998,7 @@ void Main::Maker::MakeFile(){
                       temp_Momentum = TMath::Sqrt((temp_KE*temp_KE) + 2*M*temp_KE); 
                       temp_Momentum = temp_Momentum/1000.0;
  
+                      _event_histo_1d->h_PiAbs_sig_pmom->Fill(temp_Momentum); 
 
 
                       if(t->reco_daughter_allTrack_len->at(tmk) > temp_plen){
@@ -1052,8 +1087,6 @@ void Main::Maker::MakeFile(){
              int Nreco_pion0=0;
              temp_plen = -999.0; temp_pmom=-999.0;  temp_pcostheta=-999.0;  temp_pphi=-999.0;
              for(unsigned int tmk=0; tmk<t->reco_daughter_PFP_true_byHits_PDG->size(); tmk++){
-                 //_event_histo_1d->h_PiAbs_chxbac_pmom->Fill(t->reco_daughter_allTrack_momByRange_proton->at(tmk)); 
-                 _event_histo_1d->h_PiAbs_chxbac_pmom->Fill(t->reco_daughter_allTrack_len->at(tmk)); 
                  _event_histo_1d->h_PiAbs_chxbac_pcostheta->Fill(TMath::Cos(t->reco_daughter_allTrack_Theta->at(tmk)));
                  _event_histo_1d->h_PiAbs_chxbac_pphi->Fill(t->reco_daughter_allTrack_Phi->at(tmk));
                  _event_histo_1d->h_PiAbs_chxbac_ptheta->Fill(t->reco_daughter_allTrack_Theta->at(tmk));
@@ -1076,6 +1109,7 @@ void Main::Maker::MakeFile(){
                  temp_Momentum = TMath::Sqrt((temp_KE*temp_KE) + 2*M*temp_KE); 
                  temp_Momentum = temp_Momentum/1000.0;
  
+                 _event_histo_1d->h_PiAbs_chxbac_pmom->Fill(temp_Momentum); 
 
 
 
@@ -1120,8 +1154,6 @@ void Main::Maker::MakeFile(){
              int Nreco_pionpm=0;
              temp_plen=-999.0; temp_pmom=-999.0;  temp_pcostheta=-999.0;  temp_pphi=-999.0;
              for(unsigned int tmk=0; tmk<t->reco_daughter_PFP_true_byHits_PDG->size(); tmk++){
-                 //_event_histo_1d->h_PiAbs_reabac_pmom->Fill(t->reco_daughter_allTrack_momByRange_proton->at(tmk)); 
-                 _event_histo_1d->h_PiAbs_reabac_pmom->Fill(t->reco_daughter_allTrack_len->at(tmk)); 
                  _event_histo_1d->h_PiAbs_reabac_pcostheta->Fill(TMath::Cos(t->reco_daughter_allTrack_Theta->at(tmk)));
                  _event_histo_1d->h_PiAbs_reabac_pphi->Fill(t->reco_daughter_allTrack_Phi->at(tmk));
                  _event_histo_1d->h_PiAbs_reabac_ptheta->Fill(t->reco_daughter_allTrack_Theta->at(tmk));
@@ -1153,6 +1185,7 @@ void Main::Maker::MakeFile(){
                  double M = ProtonMass*1000;
                  temp_Momentum = TMath::Sqrt((temp_KE*temp_KE) + 2*M*temp_KE); 
                  temp_Momentum = temp_Momentum/1000.0;
+                 _event_histo_1d->h_PiAbs_reabac_pmom->Fill(temp_Momentum); 
  
                  if(t->reco_daughter_allTrack_len->at(tmk) > temp_plen){
                                 temp_plen=t->reco_daughter_allTrack_len->at(tmk);
@@ -1194,6 +1227,7 @@ void Main::Maker::MakeFile(){
 
   TH1D  *generated_signal_percut = new TH1D("generated_signal_percut", "generated_signal_percut", 4, 0, 4);
 
+  TH1D  *acceptance_percut = new TH1D("acceptance_percut", "acceptance_percut", 4, 0, 4);
 
 
   /*_event_histo_1d->*/selected_percut->SetBinContent(1, Noriabs+Norichx+Norirea);
@@ -1212,6 +1246,30 @@ void Main::Maker::MakeFile(){
   /*_event_histo_1d->*/generated_signal_percut->SetBinContent(2, Noriabs);
   /*_event_histo_1d->*/generated_signal_percut->SetBinContent(3, Noriabs);
   /*_event_histo_1d->*/generated_signal_percut->SetBinContent(4, Noriabs);
+
+  //std::cout<<"acceptance in the frist bin is " <<(double)Noriabs/(Noriabs+Norichx+Norirea)*(Noriabs/Noriabs)<<std::endl;
+
+  double acceptance_shwcut = (double)Nshwcutabs/(Nshwcutabs+Nshwcutchx+Nshwcutrea);
+  acceptance_shwcut = acceptance_shwcut*Nshwcutabs/Noriabs;
+
+  //std::cout<<"Nshwcutabs is "<<Nshwcutabs<< "  Noriabs = "<<Noriabs<<std::endl;
+  //std::cout<<"acceptance in the second bin is " <<acceptance_shwcut<<std::endl;
+ 
+  double acceptance_tmcut = (double)Ntmcutabs/(Ntmcutabs+Ntmcutchx+Ntmcutrea);
+  //std::cout<<"first round of acceptance is "<<acceptance_tmcut<<std::endl;
+  acceptance_tmcut = acceptance_tmcut*Ntmcutabs/Noriabs;
+  
+  //std::cout<<"acceptance in the third bin is " <<acceptance_tmcut<<std::endl;
+  double acceptance_chi2cut = (double)Nabs/(Nabs+Nchx+Nrea);
+  acceptance_chi2cut = acceptance_chi2cut*Nabs/Noriabs;
+
+  //std::cout<<"acceptance in the fourth bin is " <<acceptance_chi2cut<<std::endl;
+
+  acceptance_percut->SetBinContent(1, (double)Noriabs/(Noriabs+Norichx+Norirea)*(Noriabs/Noriabs) );
+  acceptance_percut->SetBinContent(2, acceptance_shwcut );
+  acceptance_percut->SetBinContent(3, acceptance_tmcut);
+  acceptance_percut->SetBinContent(4, acceptance_chi2cut);
+  
 
 
   std::vector<std::string> cut_names = {"initial", "TrackScore", "TrunMeandQdx", "Chi2"};
@@ -1271,21 +1329,62 @@ void Main::Maker::MakeFile(){
   pPur_percut->SetMarkerStyle(20);
   pPur_percut->SetMarkerSize(0.6);
   TGraphAsymmErrors * pPur_percut_graph = pPur_percut->CreateGraph();
+  
   for (int i = 0; i < 4; i++) {
     pPur_percut_graph->SetPointEXhigh(i, 0.);
     pPur_percut_graph->SetPointEXlow(i, 0.);
   }
 
   pPur_percut_graph->Draw("PL");
+
+
+
+
+
   TLegend* l = new TLegend(0.4842407,0.8168421,0.777937,0.9221053,NULL,"brNDC");
   l->AddEntry(pEff_percut_graph,"Efficiency");
   l->AddEntry(pPur_percut_graph,"Purity");
   //leg->AddEntry(gr3,"Neutrino MCFlash","l");
   //  
   l->Draw();
-
+ 
   canvas_eff_pur_graph_percut->SaveAs("eff_pur_test.png");
 
+  TCanvas * canvas_acceptance_graph_percut = new TCanvas();
+  TH1F *hh = new TH1F("hh","",4, 0, 4);
+  hh->SetMaximum(1);
+  hh->GetXaxis()->SetBinLabel(1,"Initial");
+  hh->GetXaxis()->SetBinLabel(2,"TrackScore");
+  hh->GetXaxis()->SetBinLabel(3,"TrunMeandQdx");
+  hh->GetXaxis()->SetBinLabel(4,"Chi2");
+
+  hh->GetXaxis()->SetLabelOffset(0.009);
+  hh->GetXaxis()->SetLabelSize(0.06);
+
+  hh->Draw();  
+ 
+
+
+
+  Int_t nn=4;
+  Double_t x[nn], y[nn];
+  for (int i = 0; i < 4; i++) {
+    x[i]=i+0.5;
+    y[i]=acceptance_percut->GetBinContent(i+1);
+    //std::cout<<"xnn = "<<x[i]<<" ynn = "<<y[i]<<std::endl;
+  }
+
+ 
+
+  TGraph *gr_percut= new TGraph(nn, x, y);
+  gr_percut->Draw("PL");
+  gr_percut->SetTitle("Acceptance Per Cut; Cut index; Acceptance");
+  gr_percut->SetLineColor(kBlue);
+  gr_percut->SetMarkerColor(kBlue);
+  gr_percut->SetMarkerStyle(20);
+  gr_percut->SetMarkerSize(0.8);
+  gr_percut->Draw("PL");
+  canvas_acceptance_graph_percut->SaveAs("acceptance_test.png");
    
 
   file_out->Write();
@@ -1312,6 +1411,7 @@ void Main::Maker::MakeFile(){
   std::cout<<"Nabs = "<<Nabs<<std::endl;
   std::cout<<"Nchx = "<<Nchx<<std::endl;
   std::cout<<"Nrea = "<<Nrea<<std::endl;
+  std::cout<<"Nsellibo = "<<Nsellibo<<std::endl;
   clock_t end = clock();
   double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
   std::cout << std::endl << std::endl;
